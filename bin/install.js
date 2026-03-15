@@ -69,6 +69,10 @@ function toHomePrefix(pathPrefix) {
   if (normalized.startsWith(home)) {
     return '$HOME' + normalized.slice(home.length);
   }
+  // Convert tilde-based paths to $HOME-based paths for bash code blocks
+  if (normalized.startsWith('~/')) {
+    return '$HOME' + normalized.slice(1);
+  }
   // For relative paths or paths not under $HOME, return as-is
   return normalized;
 }
@@ -716,7 +720,8 @@ function installCodexConfig(targetDir, agentsSrc) {
   const agents = [];
 
   // Compute the Codex pathPrefix for replacing .claude paths
-  const codexPathPrefix = `${targetDir.replace(/\\/g, '/')}/`;
+  // Use tilde-based path to avoid baking absolute paths into templates
+  const codexPathPrefix = `${targetDir.replace(/\\/g, '/').replace(os.homedir().replace(/\\/g, '/'), '~')}/`;
 
   for (const file of agentEntries) {
     let content = fs.readFileSync(path.join(agentsSrc, file), 'utf8');
@@ -1889,10 +1894,11 @@ function install(isGlobal, runtime = 'claude') {
     : targetDir.replace(process.cwd(), '.');
 
   // Path prefix for file references in markdown content
-  // For global installs: use full path
+  // For global installs: use tilde-based path (~/.claude/) to avoid baking
+  // absolute paths (containing OS username) into templates
   // For local installs: use relative
   const pathPrefix = isGlobal
-    ? `${targetDir.replace(/\\/g, '/')}/`
+    ? `${targetDir.replace(/\\/g, '/').replace(os.homedir().replace(/\\/g, '/'), '~')}/`
     : `./${dirName}/`;
 
   let runtimeLabel = 'Claude Code';
