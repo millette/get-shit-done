@@ -710,6 +710,14 @@ function yamlQuote(value) {
   return JSON.stringify(value);
 }
 
+function yamlIdentifier(value) {
+  const text = String(value).trim();
+  if (/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(text)) {
+    return text;
+  }
+  return yamlQuote(text);
+}
+
 function extractFrontmatterAndBody(content) {
   if (!content.startsWith('---')) {
     return { frontmatter: null, body: content };
@@ -828,7 +836,7 @@ function convertClaudeCommandToCursorSkill(content, skillName) {
   const shortDescription = description.length > 180 ? `${description.slice(0, 177)}...` : description;
   const adapter = getCursorSkillAdapterHeader(skillName);
 
-  return `---\nname: ${yamlQuote(skillName)}\ndescription: ${yamlQuote(shortDescription)}\n---\n\n${adapter}\n\n${body.trimStart()}`;
+  return `---\nname: ${yamlIdentifier(skillName)}\ndescription: ${yamlQuote(shortDescription)}\n---\n\n${adapter}\n\n${body.trimStart()}`;
 }
 
 /**
@@ -845,7 +853,7 @@ function convertClaudeAgentToCursorAgent(content) {
   const name = extractFrontmatterField(frontmatter, 'name') || 'unknown';
   const description = extractFrontmatterField(frontmatter, 'description') || '';
 
-  const cleanFrontmatter = `---\nname: ${yamlQuote(name)}\ndescription: ${yamlQuote(toSingleLine(description))}\n---`;
+  const cleanFrontmatter = `---\nname: ${yamlIdentifier(name)}\ndescription: ${yamlQuote(toSingleLine(description))}\n---`;
 
   return `${cleanFrontmatter}\n${body}`;
 }
@@ -3257,7 +3265,10 @@ function installAllRuntimes(runtimes, isGlobal, isInteractive) {
 // Test-only exports — skip main logic when loaded as a module for testing
 if (process.env.GSD_TEST_MODE) {
   module.exports = {
+    yamlIdentifier,
     getCodexSkillAdapterHeader,
+    convertClaudeCommandToCursorSkill,
+    convertClaudeAgentToCursorAgent,
     convertClaudeToGeminiAgent,
     convertClaudeAgentToCodexAgent,
     generateCodexAgentToml,
