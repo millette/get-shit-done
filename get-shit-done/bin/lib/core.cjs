@@ -7,6 +7,29 @@ const path = require('path');
 const { execSync, execFileSync, spawnSync } = require('child_process');
 const { MODEL_PROFILES } = require('./model-profiles.cjs');
 
+// ─── Runtime detection ───────────────────────────────────────────────────────
+
+/**
+ * Detect the current runtime based on the installation path of gsd-tools.
+ * Claude Code installs to ~/.claude/get-shit-done/
+ * OpenCode installs to ~/.config/opencode/get-shit-done/ or .opencode/get-shit-done/
+ * Other runtimes have their own paths.
+ *
+ * @param {string} [scriptDir] - Override for testing; defaults to __dirname.
+ * @returns {'claude'|'opencode'|'gemini'|'codex'|'copilot'|'cursor'|'unknown'}
+ */
+function detectRuntime(scriptDir) {
+  const dir = scriptDir || __dirname;
+  const normalized = dir.replace(/\\/g, '/');
+  if (normalized.includes('/.config/opencode/') || normalized.includes('/.opencode/')) return 'opencode';
+  if (normalized.includes('/.claude/')) return 'claude';
+  if (normalized.includes('/.config/gemini/') || normalized.includes('/.gemini/')) return 'gemini';
+  if (normalized.includes('/.codex/') || normalized.includes('/.config/codex/')) return 'codex';
+  if (normalized.includes('/.copilot/') || normalized.includes('/.config/copilot/')) return 'copilot';
+  if (normalized.includes('/.cursor/')) return 'cursor';
+  return 'unknown';
+}
+
 // ─── Path helpers ────────────────────────────────────────────────────────────
 
 /** Normalize a relative path to always use forward slashes (cross-platform). */
@@ -879,6 +902,20 @@ const MODEL_ALIAS_MAP = {
 
 function resolveModelInternal(cwd, agentType) {
   const config = loadConfig(cwd);
+  const runtime = detectRuntime();
+
+  // Non-Claude runtimes (OpenCode, Gemini, Codex, etc.) do not recognize Claude
+  // model aliases ('opus', 'sonnet', 'haiku') or the 'inherit' keyword.
+  // Return empty string so workflows omit the model parameter from Task() calls,
+  // letting the runtime use its configured default model. See #1156.
+  //
+  // Per-agent overrides are still respected — users who set fully-qualified model IDs
+  // (e.g., "anthropic/claude-sonnet-4-6") in model_overrides know what they are doing.
+  if (runtime !== 'claude' && runtime !== 'unknown') {
+    const override = config.model_overrides?.[agentType];
+    if (override) return override;
+    return '';
+  }
 
   // Check per-agent override first
   const override = config.model_overrides?.[agentType];
@@ -1028,6 +1065,7 @@ module.exports = {
   findPhaseInternal,
   getArchivedPhaseDirs,
   getRoadmapPhaseInternal,
+  detectRuntime,
   resolveModelInternal,
   pathExistsInternal,
   generateSlugInternal,

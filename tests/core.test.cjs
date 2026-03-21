@@ -30,6 +30,7 @@ const {
   findPhaseInternal,
   findProjectRoot,
   detectSubRepos,
+  detectRuntime,
 } = require('../get-shit-done/bin/lib/core.cjs');
 
 // ─── loadConfig ────────────────────────────────────────────────────────────────
@@ -280,6 +281,46 @@ describe('resolveModelInternal', () => {
       // balanced profile, gsd-planner -> opus
       assert.strictEqual(resolveModelInternal(tmpDir, 'gsd-planner'), 'opus');
     });
+  });
+});
+
+// ─── detectRuntime ──────────────────────────────────────────────────────────────
+
+describe('detectRuntime', () => {
+  test('detects OpenCode from ~/.config/opencode/ path', () => {
+    assert.strictEqual(detectRuntime('/home/user/.config/opencode/get-shit-done/bin/lib'), 'opencode');
+  });
+
+  test('detects OpenCode from .opencode/ path (project-local)', () => {
+    assert.strictEqual(detectRuntime('/home/user/project/.opencode/get-shit-done/bin/lib'), 'opencode');
+  });
+
+  test('detects Claude Code from ~/.claude/ path', () => {
+    assert.strictEqual(detectRuntime('/home/user/.claude/get-shit-done/bin/lib'), 'claude');
+  });
+
+  test('detects Gemini from ~/.config/gemini/ path', () => {
+    assert.strictEqual(detectRuntime('/home/user/.config/gemini/get-shit-done/bin/lib'), 'gemini');
+  });
+
+  test('detects Gemini from ~/.gemini/ path', () => {
+    assert.strictEqual(detectRuntime('/home/user/.gemini/get-shit-done/bin/lib'), 'gemini');
+  });
+
+  test('detects Codex from ~/.codex/ path', () => {
+    assert.strictEqual(detectRuntime('/home/user/.codex/get-shit-done/bin/lib'), 'codex');
+  });
+
+  test('detects Cursor from ~/.cursor/ path', () => {
+    assert.strictEqual(detectRuntime('/home/user/.cursor/get-shit-done/bin/lib'), 'cursor');
+  });
+
+  test('returns unknown for unrecognized path', () => {
+    assert.strictEqual(detectRuntime('/home/user/projects/get-shit-done/bin/lib'), 'unknown');
+  });
+
+  test('handles Windows-style backslash paths', () => {
+    assert.strictEqual(detectRuntime('C:\\Users\\user\\.config\\opencode\\get-shit-done\\bin\\lib'), 'opencode');
   });
 });
 
