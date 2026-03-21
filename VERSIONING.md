@@ -31,13 +31,16 @@ The version string (`-rc.1` vs `-beta.1`) communicates stability level. Users ne
 
 ## Pre-Release Version Progression
 
+Major and minor releases use different pre-release types:
+
 ```
-1.28.0-beta.1  →  1.28.0-beta.2  →  1.28.0-rc.1  →  1.28.0-rc.2  →  1.28.0
+Minor: 1.28.0-rc.1  →  1.28.0-rc.2  →  1.28.0
+Major: 2.0.0-beta.1 →  2.0.0-beta.2 →  2.0.0
 ```
 
-- **beta**: Feature-complete but not fully tested. API mostly stable.
-- **rc**: Production-ready candidate. Only critical fixes expected.
-- Semver sorts these correctly: `beta` < `rc` < stable.
+- **beta** (major releases only): Feature-complete but not fully tested. API mostly stable. Used for major releases to signal a longer testing cycle.
+- **rc** (minor releases only): Production-ready candidate. Only critical fixes expected.
+- Each version uses one pre-release type throughout its cycle. The `rc` action in the release workflow automatically selects the correct type based on the version.
 
 ## Branch Structure
 
@@ -50,9 +53,9 @@ main                              ← stable, always deployable
   │     ├── v1.28.0-rc.1          ← tag: published to next
   │     └── v1.28.0               ← tag: promoted to latest
   │
-  ├── release/2.0.0               ← major: features + breaking changes, beta + RC cycle
+  ├── release/2.0.0               ← major: features + breaking changes, beta cycle
   │     ├── v2.0.0-beta.1         ← tag: published to next
-  │     ├── v2.0.0-rc.1           ← tag: published to next
+  │     ├── v2.0.0-beta.2         ← tag: published to next
   │     └── v2.0.0                ← tag: promoted to latest
   │
   ├── fix/1200-bug-description    ← bug fix branch (merges to main)
@@ -88,11 +91,13 @@ For accumulated fixes and enhancements.
 
 ### Major Release
 
-Same as minor but starts with `-beta.1` instead of `-rc.1`, allowing a longer testing cycle.
+Same as minor but uses `-beta.N` instead of `-rc.N`, signaling a longer testing cycle.
 
 1. Trigger `release.yml` with action `create` and version (e.g., `2.0.0`)
-2. Publish `2.0.0-beta.1` to `next`
-3. Iterate through beta, then RC, then finalize
+2. Trigger `release.yml` with action `rc` to publish `2.0.0-beta.1` to `next`
+3. If issues found: fix on release branch, publish `beta.2`, `beta.3`, etc.
+4. Trigger `release.yml` with action `finalize` -- publishes `2.0.0` to `latest`
+5. Merge release branch to main
 
 ## Conventional Commits
 

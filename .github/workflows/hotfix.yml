@@ -41,8 +41,9 @@ jobs:
 
       - name: Validate version format
         id: validate
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          VERSION="${{ inputs.version }}"
           # Must be X.Y.Z where Z > 0 (patch release)
           if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[1-9][0-9]*$'; then
             echo "::error::Version must be a patch release (e.g., 1.27.1, not 1.28.0)"
@@ -75,14 +76,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Create hotfix branch
+        env:
+          BRANCH: ${{ needs.validate-version.outputs.branch }}
+          BASE_TAG: ${{ needs.validate-version.outputs.base_tag }}
+          VERSION: ${{ inputs.version }}
         run: |
-          BRANCH="${{ needs.validate-version.outputs.branch }}"
-          BASE_TAG="${{ needs.validate-version.outputs.base_tag }}"
           git checkout -b "$BRANCH" "$BASE_TAG"
           # Bump version in package.json
-          npm version "${{ inputs.version }}" --no-git-tag-version
+          npm version "$VERSION" --no-git-tag-version
           git add package.json package-lock.json
-          git commit -m "chore: bump version to ${{ inputs.version }} for hotfix"
+          git commit -m "chore: bump version to $VERSION for hotfix"
           git push origin "$BRANCH"
           echo "## Hotfix branch created" >> "$GITHUB_STEP_SUMMARY"
           echo "- Branch: \`$BRANCH\`" >> "$GITHUB_STEP_SUMMARY"
@@ -120,8 +123,9 @@ jobs:
 
       - name: Tag and push
         if: ${{ !inputs.dry_run }}
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          VERSION="${{ inputs.version }}"
           git tag "v${VERSION}"
           git push origin "v${VERSION}"
 
@@ -129,21 +133,25 @@ jobs:
         if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ needs.validate-version.outputs.branch }}
+          VERSION: ${{ inputs.version }}
         run: |
-          BRANCH="${{ needs.validate-version.outputs.branch }}"
           gh pr create \
             --base main \
             --head "$BRANCH" \
-            --title "chore: merge hotfix v${{ inputs.version }} back to main" \
-            --body "Merge hotfix changes back to main after v${{ inputs.version }} release."
+            --title "chore: merge hotfix v${VERSION} back to main" \
+            --body "Merge hotfix changes back to main after v${VERSION} release."
 
       - name: Summary
+        env:
+          VERSION: ${{ inputs.version }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          echo "## Hotfix v${{ inputs.version }}" >> "$GITHUB_STEP_SUMMARY"
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          echo "## Hotfix v${VERSION}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$DRY_RUN" = "true" ]; then
             echo "**DRY RUN** — npm publish skipped" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "- Published to npm as \`latest\`" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Tagged \`v${{ inputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Tagged \`v${VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
             echo "- PR created to merge back to main" >> "$GITHUB_STEP_SUMMARY"
           fi

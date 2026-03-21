@@ -42,8 +42,9 @@ jobs:
 
       - name: Validate version format
         id: validate
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          VERSION="${{ inputs.version }}"
           # Must be X.Y.0 (minor or major release, not patch)
           if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.0$'; then
             echo "::error::Version must end in .0 (e.g., 1.28.0 or 2.0.0). Use hotfix workflow for patch releases."
@@ -73,10 +74,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Create release branch
+        env:
+          BRANCH: ${{ needs.validate-version.outputs.branch }}
+          VERSION: ${{ inputs.version }}
+          IS_MAJOR: ${{ needs.validate-version.outputs.is_major }}
         run: |
-          BRANCH="${{ needs.validate-version.outputs.branch }}"
-          VERSION="${{ inputs.version }}"
-          IS_MAJOR="${{ needs.validate-version.outputs.is_major }}"
           git checkout -b "$BRANCH"
           npm version "$VERSION" --no-git-tag-version
           git add package.json package-lock.json
@@ -113,9 +115,10 @@ jobs:
 
       - name: Determine pre-release version
         id: prerelease
+        env:
+          VERSION: ${{ inputs.version }}
+          IS_MAJOR: ${{ needs.validate-version.outputs.is_major }}
         run: |
-          VERSION="${{ inputs.version }}"
-          IS_MAJOR="${{ needs.validate-version.outputs.is_major }}"
           # Determine pre-release type: major → beta, minor → rc
           if [ "$IS_MAJOR" = "true" ]; then
             PREFIX="beta"
@@ -132,18 +135,25 @@ jobs:
           echo "prefix=$PREFIX" >> "$GITHUB_OUTPUT"
 
       - name: Bump to pre-release version
+        env:
+          PRE_VERSION: ${{ steps.prerelease.outputs.pre_version }}
         run: |
-          PRE_VERSION="${{ steps.prerelease.outputs.pre_version }}"
           npm version "$PRE_VERSION" --no-git-tag-version
           git add package.json package-lock.json
           git commit -m "chore: bump to ${PRE_VERSION}"
-          git tag "v${PRE_VERSION}"
-          git push origin "${{ needs.validate-version.outputs.branch }}" --tags
 
       - name: Install and test
         run: |
           npm ci
           npm run test:coverage
+
+      - name: Tag and push
+        env:
+          PRE_VERSION: ${{ steps.prerelease.outputs.pre_version }}
+          BRANCH: ${{ needs.validate-version.outputs.branch }}
+        run: |
+          git tag "v${PRE_VERSION}"
+          git push origin "$BRANCH" --tags
 
       - name: Publish to npm (next)
         if: ${{ !inputs.dry_run }}
@@ -152,10 +162,12 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
+        env:
+          PRE_VERSION: ${{ steps.prerelease.outputs.pre_version }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          PRE_VERSION="${{ steps.prerelease.outputs.pre_version }}"
           echo "## Pre-release v${PRE_VERSION}" >> "$GITHUB_STEP_SUMMARY"
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "$DRY_RUN" = "true" ]; then
             echo "**DRY RUN** — npm publish skipped" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "- Published to npm as \`next\`" >> "$GITHUB_STEP_SUMMARY"
@@ -184,18 +196,26 @@ jobs:
           cache: 'npm'
 
       - name: Set final version
+        env:
+          VERSION: ${{ inputs.version }}
+          BRANCH: ${{ needs.validate-version.outputs.branch }}
         run: |
-          VERSION="${{ inputs.version }}"
           npm version "$VERSION" --no-git-tag-version --allow-same-version
           git add package.json package-lock.json
           git diff --cached --quiet || git commit -m "chore: finalize v${VERSION}"
-          git tag "v${VERSION}"
-          git push origin "${{ needs.validate-version.outputs.branch }}" --tags
 
       - name: Install and test
         run: |
           npm ci
           npm run test:coverage
+
+      - name: Tag and push
+        env:
+          VERSION: ${{ inputs.version }}
+          BRANCH: ${{ needs.validate-version.outputs.branch }}
+        run: |
+          git tag "v${VERSION}"
+          git push origin "$BRANCH" --tags
 
       - name: Publish to npm (latest)
         if: ${{ !inputs.dry_run }}
@@ -207,9 +227,9 @@ jobs:
         if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ needs.validate-version.outputs.branch }}
+          VERSION: ${{ inputs.version }}
         run: |
-          BRANCH="${{ needs.validate-version.outputs.branch }}"
-          VERSION="${{ inputs.version }}"
           gh pr create \
             --base main \
             --head "$BRANCH" \
@@ -217,10 +237,12 @@ jobs:
             --body "Merge release branch back to main after v${VERSION} stable release."
 
       - name: Summary
+        env:
+          VERSION: ${{ inputs.version }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          VERSION="${{ inputs.version }}"
           echo "## Release v${VERSION}" >> "$GITHUB_STEP_SUMMARY"
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "$DRY_RUN" = "true" ]; then
             echo "**DRY RUN** — npm publish skipped" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "- Published to npm as \`latest\`" >> "$GITHUB_STEP_SUMMARY"
