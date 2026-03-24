@@ -13,6 +13,7 @@ Read all files referenced by the invoking prompt's execution_context before star
 ```bash
 INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init milestone-op)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
+AGENT_SKILLS_CHECKER=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" agent-skills gsd-integration-checker 2>/dev/null)
 ```
 
 Extract from init JSON: `milestone_version`, `milestone_name`, `phase_count`, `completed_phases`, `commit_docs`.
@@ -73,7 +74,8 @@ Milestone Requirements:
 
 MUST map each integration finding to affected requirement IDs where applicable.
 
-Verify cross-phase wiring and E2E user flows.",
+Verify cross-phase wiring and E2E user flows.
+${AGENT_SKILLS_CHECKER}",
   subagent_type="gsd-integration-checker",
   model="{integration_checker_model}"
 )

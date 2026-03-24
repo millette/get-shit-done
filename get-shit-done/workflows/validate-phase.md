@@ -13,6 +13,7 @@ Audit Nyquist validation gaps for a completed phase. Generate missing tests. Upd
 ```bash
 INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init phase-op "${PHASE_ARG}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
+AGENT_SKILLS_AUDITOR=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" agent-skills gsd-nyquist-auditor 2>/dev/null)
 ```
 
 Parse: `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `padded_phase`.
@@ -90,7 +91,8 @@ Task(
     "<files_to_read>{PLAN, SUMMARY, impl files, VALIDATION.md}</files_to_read>" +
     "<gaps>{gap list}</gaps>" +
     "<test_infrastructure>{framework, config, commands}</test_infrastructure>" +
-    "<constraints>Never modify impl files. Max 3 debug iterations. Escalate impl bugs.</constraints>",
+    "<constraints>Never modify impl files. Max 3 debug iterations. Escalate impl bugs.</constraints>" +
+    "${AGENT_SKILLS_AUDITOR}",
   subagent_type="gsd-nyquist-auditor",
   model="{AUDITOR_MODEL}",
   description="Fill validation gaps for Phase {N}"

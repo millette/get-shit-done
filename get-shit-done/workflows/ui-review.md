@@ -13,6 +13,7 @@ Retroactive 6-pillar visual audit of implemented frontend code. Standalone comma
 ```bash
 INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init phase-op "${PHASE_ARG}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
+AGENT_SKILLS_UI_REVIEWER=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" agent-skills gsd-ui-reviewer 2>/dev/null)
 ```
 
 Parse: `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `padded_phase`, `commit_docs`.
@@ -79,6 +80,8 @@ Conduct 6-pillar visual audit of Phase {phase_number}: {phase_name}
 - {ui_spec_path} (UI Design Contract — audit baseline, if exists)
 - {context_path} (User decisions, if exists)
 </files_to_read>
+
+${AGENT_SKILLS_UI_REVIEWER}
 
 <config>
 phase_dir: {phase_dir}
