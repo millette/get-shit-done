@@ -47,6 +47,20 @@ npx get-shit-done-cc@latest
 
 ---
 
+> [!IMPORTANT]
+> ### Welcome Back to GSD
+>
+> If you're returning to GSD after the recent Anthropic Terms of Service changes — welcome back. We kept building while you were gone.
+>
+> **To re-import an existing project into GSD:**
+> 1. Run `/gsd-map-codebase` to scan and index your current codebase state
+> 2. Run `/gsd-new-project` to initialize a fresh GSD planning structure using the codebase map as context
+> 3. Review [docs/USER-GUIDE.md](docs/USER-GUIDE.md) and the [CHANGELOG](CHANGELOG.md) for updates — a lot has changed since you were last here
+>
+> Your code is fine. GSD just needs its planning context rebuilt. The two commands above handle that.
+
+---
+
 ## Why I Built This
 
 I'm a solo developer. I don't write code — Claude Code does.
@@ -75,15 +89,13 @@ People who want to describe what they want and have it built correctly — witho
 
 Built-in quality gates catch real problems: schema drift detection flags ORM changes missing migrations, security enforcement anchors verification to threat models, and scope reduction detection prevents the planner from silently dropping your requirements.
 
-### v1.32.0 Highlights
+### v1.33.0 Highlights
 
-- **STATE.md consistency gates** — `state validate` detects drift between STATE.md and filesystem; `state sync` reconstructs from actual project state
-- **`--to N` flag** — Stop autonomous execution after a specific phase
-- **Research gate** — Blocks planning when RESEARCH.md has unresolved open questions
-- **Verifier milestone scope filtering** — Gaps addressed in later phases marked as deferred, not gaps
-- **Read-before-edit guard** — Advisory hook prevents infinite retry loops in non-Claude runtimes
-- **Context reduction** — Markdown truncation and cache-friendly prompt ordering for lower token usage
-- **4 new runtimes** — Trae, Kilo, Augment, and Cline (12 runtimes total)
+- **9 bug fixes** — Frontmatter parser, cross-platform planning lock, model alias updates, prompt guard, Kilo/skill path replacement, and more
+- **Shared behavioral references** — Consistent agent behavior via questioning, domain-probes, and UI-brand reference docs
+- **CONFIG_DEFAULTS refactor** — Single source of truth for all config defaults, eliminating scattered hardcoded values
+- **Test standardization** — Full migration to `node:assert/strict` and `t.after()` cleanup patterns
+- **Typed contribution templates** — Separate Bug, Enhancement, and Feature workflows with approval gates
 
 ---
 
